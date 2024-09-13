@@ -68,8 +68,10 @@ class Window(QWidget):
                 cell_value = str(cell.value) if cell.value is not None else ""
                 item = QTableWidgetItem(cell_value)
                 self.table.setItem(row_index, col_index, item)
-                # 数字を右寄せにする
-                if cell.data_type == "n":
+                if cell.font.bold:
+                    font = item.font()
+                    font.setBold(True)
+                if cell.data_type == "n": # 数字を右寄せにする
                     item.setTextAlignment(0x0082)
 
     def resizeEvent(self, event):
