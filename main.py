@@ -1,7 +1,7 @@
 import os
 import sys
 from PyQt6.QtWidgets import QWidget, QTableWidget, QMenuBar, QPushButton, QFileDialog, QToolBar, QComboBox, QTableWidgetItem, QApplication
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 
 COLUMN_NUM = 1000
 ROW_NUM = 1000
@@ -17,9 +17,12 @@ class Window(QWidget):
         self.table = QTableWidget(self)
         self.table.setGeometry(0, 60, self.width(), self.height()-60)
         self.table.cellClicked.connect(self.cell_clicked)
+        self.table.cellChanged.connect(self.cell_changed)
         self.table.setColumnCount(COLUMN_NUM)
         self.table.setRowCount(ROW_NUM)
 
+        self.workbook = Workbook()
+        self.sheet = self.workbook.active
         self.create_menu_bar()
         self.create_tool_bar()
 
@@ -72,11 +75,12 @@ class Window(QWidget):
     def save_file_as(self):
         file_path, _ = QFileDialog.getSaveFileName(self, "ファイルを保存", "", "Excelファイル (*.xlsx)")
         if file_path:
-            self.save_excel_data(file_path)
+            self.file_path = file_path
+            self.save_excel_data(self.file_path)
         
     def load_excel_data(self, file_path):
-        workbook = load_workbook(file_path)
-        self.sheet = workbook.active
+        self.workbook = load_workbook(file_path)
+        self.sheet = self.workbook.active
 
         rd = self.sheet.row_dimensions
         for row_index in rd.keys():
@@ -102,6 +106,9 @@ class Window(QWidget):
                     item.setTextAlignment(0x0082)
                 item.setFont(font)
 
+    def save_excel_data(self, file_path):
+        self.workbook.save(file_path)
+
     def cell_clicked(self, row, column):
         item = self.table.item(row, column)
         if item is not None:
@@ -114,6 +121,11 @@ class Window(QWidget):
             self.bold_button.setChecked(False)
             self.italic_button.setChecked(False)
             self.underline_button.setChecked(False)
+
+    def cell_changed(self, row, column):
+        item = self.table.item(row, column)
+        if item is not None:
+            self.sheet.cell(row=row+1, column=column+1, value=item.text())
 
     def resizeEvent(self, event):
         self.table.setGeometry(0, 60, self.width(), self.height()-60)
