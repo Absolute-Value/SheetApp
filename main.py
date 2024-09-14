@@ -13,6 +13,8 @@ class Window(QWidget):
         self.file_path = "Book1.xlsx"
         self.setWindowTitle(os.path.basename(self.file_path))
         self.setGeometry(100, 100, 800, 600)
+        self.create_menu_bar()
+        self.create_tool_bar()
 
         self.table = QTableWidget(self)
         self.table.setGeometry(0, 60, self.width(), self.height()-60)
@@ -23,20 +25,21 @@ class Window(QWidget):
 
         self.workbook = Workbook()
         self.sheet = self.workbook.active
-        self.create_menu_bar()
-        self.create_tool_bar()
 
     def create_menu_bar(self):
         menu_bar = QMenuBar(self)
+
         file_menu = menu_bar.addMenu("ファイル")
 
         load_action = file_menu.addAction("開く")
         load_action.triggered.connect(self.load_file)
 
+        file_menu.addSeparator()
+
         save_action = file_menu.addAction("保存")
         save_action.triggered.connect(self.save_file)
 
-        save_as_action = file_menu.addAction("コピーを保存")
+        save_as_action = file_menu.addAction("名前をつけて保存")
         save_as_action.triggered.connect(self.save_file_as)
 
     def create_tool_bar(self):
