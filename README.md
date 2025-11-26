@@ -2,12 +2,10 @@
 
 ## 環境構築
 ```bash
-python -m venv .env
-source .env/bin/activate
-pip install -r requirements.txt
+uv sync
 ```
 
 ## 実行
 ```bash
-python main.py
+uv run main.py
 ```
