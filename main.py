@@ -174,7 +174,14 @@ class Window(QWidget):
         table = self.tab_widget.widget(current_index)
         item = table.item(row, column)
         if item is not None:
-            self.sheet.cell(row=row+1, column=column+1, value=item.text())
+            cell = self.sheet.cell(row=row+1, column=column+1)
+            # 結合セルの場合はスキップ
+            if isinstance(cell, type(cell)) and hasattr(cell, 'value'):
+                try:
+                    cell.value = item.text()
+                except AttributeError:
+                    # MergedCellの場合は何もしない
+                    pass
 
     def resizeEvent(self, event):
         self.tab_widget.setGeometry(0, 60, self.width(), self.height()-60)
