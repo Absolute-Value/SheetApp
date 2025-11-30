@@ -28,6 +28,7 @@ class Window(QWidget):
         self.table.setRowCount(ROW_NUM)
 
         self.workbook = Workbook()
+        self.workbook_values = None  # 値用ワークブック(ファイル読み込み時のみ使用)
         self.sheet = self.workbook.active
         
         self.tab_widget.addTab(self.table, self.sheet.title)
@@ -89,7 +90,9 @@ class Window(QWidget):
             self.save_excel_data(self.file_path)
         
     def load_excel_data(self, file_path):
-        self.workbook = load_workbook(file_path)
+        # 数式と値の両方を扱うため、2つのワークブックを読み込む
+        self.workbook = load_workbook(file_path, data_only=False)  # 数式用
+        self.workbook_values = load_workbook(file_path, data_only=True)  # 値用
         self.sheet = self.workbook.active
         
         self.populate_table_from_sheet(self.sheet)
@@ -126,9 +129,27 @@ class Window(QWidget):
             for col_index2 in range(sc[col_index].min+1, sc[col_index].max+1):
                 table.setColumnWidth(col_index2, int(sc[col_index].width*7))
 
+        # 値用ワークブックから対応するシートを取得
+        value_sheet = None
+        if self.workbook_values is not None:
+            sheet_name = sheet.title
+            if sheet_name in self.workbook_values.sheetnames:
+                value_sheet = self.workbook_values[sheet_name]
+
         for row_index, row in enumerate(sheet.iter_rows()):
             for col_index, cell in enumerate(row):
-                cell_value = str(cell.value) if cell.value is not None else ""
+                # 数式がある場合は計算結果を表示、なければ値を表示
+                if cell.data_type == "f":  # 数式の場合
+                    # 値用ワークブックから計算結果を取得
+                    if value_sheet is not None:
+                        value_cell = value_sheet.cell(row=row_index+1, column=col_index+1)
+                        cell_value = str(value_cell.value) if value_cell.value is not None else ""
+                    else:
+                        cell_value = str(cell.value) if cell.value else ""
+                        if cell_value and not cell_value.startswith("="):
+                            cell_value = "=" + cell_value
+                else:
+                    cell_value = str(cell.value) if cell.value is not None else ""
                 item = QTableWidgetItem(cell_value)
                 table.setItem(row_index, col_index, item)
                 
@@ -138,7 +159,7 @@ class Window(QWidget):
                 
                 if cell.font.bold:
                     font.setBold(True)
-                if cell.data_type == "n": # 数字を右寄せにする
+                if cell.data_type == "n" or (cell.data_type == "f" and value_sheet is not None): # 数字または数式を右寄せにする
                     item.setTextAlignment(0x0082)
                 item.setFont(font)
 
@@ -178,7 +199,12 @@ class Window(QWidget):
             # 結合セルの場合はスキップ
             if isinstance(cell, type(cell)) and hasattr(cell, 'value'):
                 try:
-                    cell.value = item.text()
+                    text = item.text()
+                    # 数式の場合(=で始まる)は=を除いて保存
+                    if text.startswith("="):
+                        cell.value = text
+                    else:
+                        cell.value = text
                 except AttributeError:
                     # MergedCellの場合は何もしない
                     pass
